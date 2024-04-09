@@ -1,9 +1,13 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for
 import json
 
 app = Flask(__name__)
 
 REPOSITORIES_FILE = "repositories.json"
+
+discord_webhook_url = os.environ.get('DISCORD_WEBHOOK_URL')
+check_interval = int(os.environ.get('CHECK_INTERVAL', '60'))
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -32,4 +36,5 @@ def add_repository(owner, repo):
     save_repositories(repositories)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Listen on all network interfaces
+    app.run(host='0.0.0.0', debug=True)
