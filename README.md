@@ -50,6 +50,3 @@ To add repositories to watch for new releases, access the web GUI by visiting [h
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 ```
 
-Replace `your-username` and `your-repository` with your GitHub username and repository name, respectively.
-
-You can customize this README to include more specific information about your application, its features, and how to use it. Make sure to update the URLs, names, and links according to your project.
