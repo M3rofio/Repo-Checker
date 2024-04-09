@@ -1,9 +1,10 @@
-import time
 import requests
 from discord_webhook import DiscordWebhook
 import logging
 import sys
 import os
+import time
+from flask import Flask, render_template, request
 
 # Configure logging to write to stdout
 logging.basicConfig(
@@ -20,6 +21,7 @@ CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', 2 * 60 * 60))
 DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
+app = Flask(__name__)
 
 def read_repository_file(file_path):
     repositories = []
@@ -54,37 +56,16 @@ def send_discord_notification(webhook_url, release, repo_info):
     webhook.execute()
 
 
-def main():
-    logger.info("Starting GitHub release notifier...")
-    repositories = read_repository_file('repositories.txt')
-    last_release_ids = {}
+@app.route('/')
+def index():
+    return "GitHub release notifier is running!"
 
-    # Fetch and store the latest release ID for each repository initially
-    for owner, repo in repositories:
-        repo_key = f"{owner}/{repo}"
-        try:
-            latest_release = get_latest_release(owner, repo)
-            if latest_release:
-                last_release_ids[repo_key] = latest_release['id']
-                logger.info(f"Initial release ID for {repo_key}: {latest_release['id']}")
-        except Exception as e:
-            logger.error(f"Error in {repo_key}: {e}")
 
-    # Monitor for new releases
-    while True:
-        for owner, repo in repositories:
-            repo_key = f"{owner}/{repo}"
-            try:
-                latest_release = get_latest_release(owner, repo)
-                if latest_release and latest_release['id'] != last_release_ids.get(repo_key):
-                    send_discord_notification(DISCORD_WEBHOOK_URL, latest_release, (owner, repo))
-                    last_release_ids[repo_key] = latest_release['id']
-                    logger.info(f"New release detected for {repo_key}: {latest_release['id']}")
-            except Exception as e:
-                logger.error(f"Error in {repo_key}: {e}")
-
-        time.sleep(CHECK_INTERVAL)
+@app.route('/start')
+def start_notifier():
+    main()
+    return "GitHub release notifier started!"
 
 
 if __name__ == "__main__":
-    main()
+    app.run(host='0.0.0.0', port=8080)
