@@ -1,4 +1,3 @@
-markdown
 # Dockerized Flask Application
 
 This is a simple Flask application dockerized along with a Redis server using Docker Compose.
