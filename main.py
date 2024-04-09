@@ -1,45 +1,90 @@
+import time
+import requests
+from discord_webhook import DiscordWebhook
+import logging
+import sys
 import os
-from flask import Flask, render_template, request, redirect, url_for, jsonify
-import json
 
-app = Flask(__name__)
+# Configure logging to write to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
-REPOSITORIES_FILE = "repositories.json"
+# Create a logger instance
+logger = logging.getLogger(__name__)
 
-discord_webhook_url = os.environ.get('DISCORD_WEBHOOK_URL')
-check_interval = int(os.environ.get('CHECK_INTERVAL', '60'))
+# Time interval in seconds between release checks, defaults to 2 hours (7200 seconds).
+CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', 2 * 60 * 60))
+DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        owner = request.form['owner']
-        repo = request.form['repo']
-        add_repository(owner, repo)
-        return redirect(url_for('index'))
-    repositories = load_repositories()
-    return render_template('index.html', repositories=repositories)
 
-@app.route('/webhook', methods=['POST'])
-def webhook_test():
-    data = request.json
-    print("Received webhook data:", data)
-    return jsonify({"message": "Webhook test successful"})
-
-def load_repositories():
+def read_repository_file(file_path):
+    repositories = []
     try:
-        with open(REPOSITORIES_FILE, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
+        with open(file_path, 'r') as file:
+            for line in file:
+                owner, repo = line.strip().split(', ')
+                repositories.append((owner, repo))
+    except Exception as e:
+        logger.error(f"Error reading repository file: {e}")
+    return repositories
 
-def save_repositories(repositories):
-    with open(REPOSITORIES_FILE, 'w') as f:
-        json.dump(repositories, f, indent=4)
 
-def add_repository(owner, repo):
-    repositories = load_repositories()
-    repositories.append({"owner": owner, "repo": repo})
-    save_repositories(repositories)
+def get_latest_release(owner, repo):
+    url = f'https://api.github.com/repos/{owner}/{repo}/releases'
+    headers = {'Accept': 'application/vnd.github+json'}
+
+    if GITHUB_TOKEN:
+        headers['Authorization'] = f'token {GITHUB_TOKEN}'
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    releases = response.json()
+    return releases[0] if releases else None
+
+
+def send_discord_notification(webhook_url, release, repo_info):
+    owner, repo = repo_info
+    release_name = release['name'] or release['tag_name']
+    release_url = release['html_url']
+    content = f"🚀 New release **{release_name}** in **{owner}/{repo}**\n{release_url}"
+    webhook = DiscordWebhook(url=webhook_url, content=content)
+    webhook.execute()
+
+
+def main():
+    logger.info("Starting GitHub release notifier...")
+    repositories = read_repository_file('repositories.txt')
+    last_release_ids = {}
+
+    # Fetch and store the latest release ID for each repository initially
+    for owner, repo in repositories:
+        repo_key = f"{owner}/{repo}"
+        try:
+            latest_release = get_latest_release(owner, repo)
+            if latest_release:
+                last_release_ids[repo_key] = latest_release['id']
+                logger.info(f"Initial release ID for {repo_key}: {latest_release['id']}")
+        except Exception as e:
+            logger.error(f"Error in {repo_key}: {e}")
+
+    # Monitor for new releases
+    while True:
+        for owner, repo in repositories:
+            repo_key = f"{owner}/{repo}"
+            try:
+                latest_release = get_latest_release(owner, repo)
+                if latest_release and latest_release['id'] != last_release_ids.get(repo_key):
+                    send_discord_notification(DISCORD_WEBHOOK_URL, latest_release, (owner, repo))
+                    last_release_ids[repo_key] = latest_release['id']
+                    logger.info(f"New release detected for {repo_key}: {latest_release['id']}")
+            except Exception as e:
+                logger.error(f"Error in {repo_key}: {e}")
+
+        time.sleep(CHECK_INTERVAL)
+
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=True)
+    main()
