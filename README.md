@@ -20,3 +20,14 @@ These instructions will get you a copy of the project up and running on your loc
 
    ```bash
    git clone https://github.com/M3rofio/Repo-Checker.git
+2- Navigate to the project directory:
+
+   ```bash
+   Copy code
+   cd Repo-Checker
+3- Run the following command to build and start the Docker containers:
+
+   ```bash
+   Copy code
+   docker-compose up --build
+4- Access the application in your web browser at http://localhost:5000/.
