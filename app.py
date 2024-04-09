@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import json
 
 app = Flask(__name__)
@@ -19,6 +19,12 @@ def index():
     repositories = load_repositories()
     return render_template('index.html', repositories=repositories)
 
+@app.route('/webhook', methods=['POST'])
+def webhook_test():
+    data = request.json
+    print("Received webhook data:", data)
+    return jsonify({"message": "Webhook test successful"})
+
 def load_repositories():
     try:
         with open(REPOSITORIES_FILE, 'r') as f:
@@ -36,5 +42,4 @@ def add_repository(owner, repo):
     save_repositories(repositories)
 
 if __name__ == "__main__":
-    # Listen on all network interfaces
     app.run(host='0.0.0.0', debug=True)
