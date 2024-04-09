@@ -1,5 +1,3 @@
-Sure, here's an example README.md file you can include in your GitHub repository for your Dockerized Flask application:
-
 markdown
 # Dockerized Flask Application
 
