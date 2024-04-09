@@ -1,6 +1,6 @@
 Sure, here's an example README.md file you can include in your GitHub repository for your Dockerized Flask application:
 
-```markdown
+markdown
 # Dockerized Flask Application
 
 This is a simple Flask application dockerized along with a Redis server using Docker Compose.
@@ -46,7 +46,7 @@ To add repositories to watch for new releases, access the web GUI by visiting [h
 
 ## Authors
 
-- [Your Name](https://github.com/M3rofio/)
+- [M3rofio](https://github.com/M3rofio/)
 
 ## License
 
