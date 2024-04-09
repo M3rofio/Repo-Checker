@@ -1,17 +1,21 @@
-version: '3'
+version: '3.8'
 
 services:
-  app:
-    build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - .:/app
+  github-release-notifier:
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
-      - DISCORD_WEBHOOK_URL=YOUR_DISCORD_WEBHOOK_URL
-      - CHECK_INTERVAL=1800
-    depends_on:
-      - redis
+      CHECK_INTERVAL: 7200
+      DISCORD_WEBHOOK_URL: YOUR_DISCORD_WEBHOOK_URL
+      GITHUB_TOKEN: YOUR_GITHUB_TOKEN
+    volumes:
+      - ./repositories.txt:/app/repositories.txt
+    restart: always
 
-  redis:
-    image: "redis:alpine"
+  web-gui:
+    image: nginx:alpine
+    volumes:
+      - ./web-gui:/usr/share/nginx/html
+    ports:
+      - "8080:80"
